@@ -1,0 +1,30 @@
+#include <scenariogenerator.hpp>
+
+
+ScenarioGenerator::ScenarioGenerator(const std::set<int> indices,
+		std::shared_ptr<Quantlib::OneFactorAffineModel> model,
+		int n, int m){
+
+	std::uniform_real_distribution<double> randUniform = std::uniform_real_distribution<double> (0.0,1.0);
+	for (size_t i=0; i<n; ++i){
+		std::vector<double> v;
+		std::vector<double> w;
+		for (size_t j=0; j< m; ++j){
+			v.pushback(randUniform(g));
+			w.pushback(randUniform(g));
+		}
+		std::vector<double> v1=v;
+		std::vector<double> v2=w;
+		std::set<double>::iterator itr;
+		for(itr=indexes.begin(); itr!=indexes.end();++itr){
+			v1(*itr)=w(*itr);
+			v2(*itr)=v(*itr);
+		}
+		scenarios.pushback(v);
+		scenarios.pushback(w);
+
+		scenarios.pushback(v1);
+		scenarios.pushback(v2);
+	}
+}
+
