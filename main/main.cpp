@@ -18,7 +18,7 @@ int main (int argc,char* argv[]){
 	GSAFunction gsa_function(AoD);
 	std::function<double(std::vector<double>)> f = 
 		[&gsa_function] (std::vector<double> v) {return gsa_function.eval(v[0],v[1], v[2], v[3], v[4], 1);};
-	std::cout << "Base price: " << gsa_function.eval(0.0,0.0,0.0,0.0,0.0,1) << std::endl;
+	std::cout << "Base price: " << gsa_function.eval(0.0,0.0,0.0,0.0,0.0,0) << std::endl;
 	int sampleNumber = stoi(conf.get("sample_number"));
 	GlobalSensitivityCalculator gsa_calculator(f,sampleNumber,5);
 	int indexes[] = {0,1,2,3};
