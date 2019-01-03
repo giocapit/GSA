@@ -1,11 +1,9 @@
 #include "CCSPricer.hpp"
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
-#include <ql/indexes/ibor/euribor.hpp>
-#include <ql/indexes/ibor/eurlibor.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 
 using namespace QuantLib;
-CCSPricer::CCSPricer(Date today, Date settlementDate, Date maturity, double notional): notional_(notional){
+CCSPricer::CCSPricer(Date today, Date settlementDate, Date maturity, double notional,std::vector<double> notionalsCCY2, std::vector<double> fixingsCCY1, std::vector<double>fixingsCCY2): notional_(notional), notionalsCCY2_(notionalsCCY2), eurLibor3M(), euribor3M(){
 	this->today = today;
 	calendar = TARGET();
 	settlementDate = calendar.adjust(settlementDate);
@@ -33,6 +31,12 @@ CCSPricer::CCSPricer(Date today, Date settlementDate, Date maturity, double noti
 	std::vector<Date> ccy2Schedule = floatScheduleCCY2.dates();
 
 	std::copy(ccy2Schedule.begin(), ccy2Schedule.end(), std::ostream_iterator<Date>(std::cout, " ")); std::cout << std::endl;
+	for (size_t i=0; i<fixingsCCY1.size();++i){	
+		eurLibor3M.addFixing(calendar.advance(floatScheduleCCY1[i],-2,Days),fixingsCCY1[i]);
+	}
+	for (size_t i=0; i<fixingsCCY2.size();++i){	
+		euribor3M.addFixing(calendar.advance(floatScheduleCCY2[i],-2,Days),fixingsCCY2[i]);
+	}
 };
 
 double CCSPricer::eval(Rate fxSpot,
@@ -59,12 +63,8 @@ double CCSPricer::eval(Rate fxSpot,
 		std::vector<Rate> fixedRate(nominalCCY1.size(),0.0);
 
 		// floating leg
-		ext::shared_ptr<IborIndex> euriborIndexCCY1(
-				new EURLibor3M(yCCY1Curve));
-		euriborIndexCCY1->addFixing(calendar.advance(floatScheduleCCY1[0],-2,Days),-0.00321);
-		ext::shared_ptr<IborIndex> euriborIndexCCY2(
-				new Euribor3M(yCCY2Curve));
-		euriborIndexCCY2->addFixing(calendar.advance(floatScheduleCCY2[0],-2,Days),0.0233688);
+		ext::shared_ptr<IborIndex> euriborIndexCCY1=eurLibor3M.clone(yCCY1Curve);
+		ext::shared_ptr<IborIndex> euriborIndexCCY2=euribor3M.clone(yCCY2Curve);
 		Spread spreadCCY2 = 0.0;
 		Spread spreadCCY1 = 0.0;
 
@@ -73,22 +73,26 @@ double CCSPricer::eval(Rate fxSpot,
 
 		for (Size i=0; i<floatScheduleCCY2.size() - 1;++i)
 		{
-			if (floatScheduleCCY2[i] <= today){
-				nominalCCY2.push_back(nominalCCY1[i] * fxSpot);
+			if (notionalsCCY2_[0] != 0){
+				nominalCCY2.push_back(notionalsCCY2_[i]);
 			} else {
-				Period mat(floatScheduleCCY2[i] - today,Days);
-				std::shared_ptr<RateHelper> fwdPoint(new FxSwapRateHelper(
-							Handle<Quote>(ext::shared_ptr<SimpleQuote> (new SimpleQuote(0.0))), Handle<Quote>(fxSpotRate),
-							mat, 2, calendar,
-							conventionCCY2,
-							true,
-							true,
-							numeraireCurve));
-				fwdPoint->setTermStructure((*assetCurve).get());
+				if (floatScheduleCCY2[i] <= today){
+					nominalCCY2.push_back(nominalCCY1[i] * fxSpot);
+				} else {
+					Period mat(floatScheduleCCY2[i] - today,Days);
+					std::shared_ptr<RateHelper> fwdPoint(new FxSwapRateHelper(
+								Handle<Quote>(ext::shared_ptr<SimpleQuote> (new SimpleQuote(0.0))), Handle<Quote>(fxSpotRate),
+								mat, 2, calendar,
+								conventionCCY2,
+								true,
+								true,
+								numeraireCurve));
+					fwdPoint->setTermStructure((*assetCurve).get());
 
-				Real fxPoints = fwdPoint->impliedQuote();
-				Real fxFwd = fxSpot + fxPoints;
-				nominalCCY2.push_back(nominalCCY1[i]*fxFwd);
+					Real fxPoints = fwdPoint->impliedQuote();
+					Real fxFwd = fxSpot + fxPoints;
+					nominalCCY2.push_back(nominalCCY1[i]*fxFwd);
+				}
 			}
 
 		}

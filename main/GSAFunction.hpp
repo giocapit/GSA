@@ -36,6 +36,7 @@ class GSAFunction{
 		double numeraireCurve_r0;
 		double spreadCurve_r0;
 		double fx_spot;
+		std::vector<int> indices;
 		QuantLib::Actual365Fixed dayCount_;
 		CCSPricer ccsPricer;
 
@@ -59,6 +60,7 @@ class GSAFunction{
 	public: 
 		GSAFunction(std::string todayAsString);
 		~GSAFunction(){};
+		const std::vector<int> getIndices(){return indices;};
 		double eval(double ccy1_r, 
 				double ccy2_r, 
 				double asset_r, 

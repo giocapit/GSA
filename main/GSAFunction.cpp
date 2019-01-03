@@ -8,6 +8,7 @@
 #include "GSAFunction.hpp"
 #include "utils.hpp"
 #include "ShortRateModelCalibrator.hpp"
+#include "settings.hpp"
 using namespace QuantLib;
 
 GSAFunction::GSAFunction(std::string todayAsString){
@@ -46,12 +47,36 @@ GSAFunction::GSAFunction(std::string todayAsString){
 	std::getline(tradeFile,line);
 	std::cout << line << std::endl;
 	fx_spot = stod(line);
-	//leggo nominale:
+	//leggo nominali:
 	std::cout << "Reading nominal from the trade file..." << std::endl;
 	std::getline(tradeFile,line);
 	std::getline(tradeFile,line);
 	std::cout << line << std::endl;
 	double nominal = stod(line);
+	std::cout << "Reading nominals of ccy2 from the trade file..." << std::endl;
+	std::getline(tradeFile,line);
+	std::getline(tradeFile,line);
+	std::cout << line << std::endl;
+	std::vector<double> nominalsCCY2(1,0.0);
+	if (line!=""){
+		nominalsCCY2 = splitToDouble(line,',');
+	}
+	std::cout << "Reading fixings from the trade file..." << std::endl;
+	std::getline(tradeFile,line);
+	std::getline(tradeFile,line);
+	std::cout << line << std::endl;
+	std::vector<double> fixingsCCY1(splitToDouble(line,','));
+	std::getline(tradeFile,line);
+	std::getline(tradeFile,line);
+	std::cout << line << std::endl;
+	std::vector<double> fixingsCCY2(splitToDouble(line,','));
+	std::cout << "including into X set the variables:" << std::endl;
+	std::getline(tradeFile,line);
+	std::getline(tradeFile,line);
+	std::cout << line << std::endl;
+	indices = splitString<int>(line,',');
+
+
 	//estraggo dalla curva i parametri del modello
 	//
 	//	prendo come proxy dello short rate il tasso a 1 g	
@@ -85,8 +110,11 @@ GSAFunction::GSAFunction(std::string todayAsString){
 	model_spreadCurve=std::shared_ptr<OneFactorAffineModel>(new Vasicek(spreadCurve_r0));
 	sr_calibrator.calibrate(offsets_spreadCurve,spreadCurveValues,model_spreadCurve,today,spreadCurve_r0);
 	//modello per il tasso di cambio
+	
+	Configs conf = Configs::instance();
+	double  fxVol = stod(conf.get("fxVol"));
 	Handle<Quote> h1(ext::make_shared<SimpleQuote>(SimpleQuote(ccy1_r0)));
-	Handle<Quote> h2(ext::make_shared<SimpleQuote>(SimpleQuote(0.30)));
+	Handle<Quote> h2(ext::make_shared<SimpleQuote>(SimpleQuote(fxVol)));
 	Handle<YieldTermStructure> flatRate(
 			ext::shared_ptr<YieldTermStructure>(
 				new FlatForward(0, NullCalendar(),
@@ -100,7 +128,7 @@ GSAFunction::GSAFunction(std::string todayAsString){
 				flatRate, flatVol));
 	//pricer
 	//
-	ccsPricer = CCSPricer(today,settlementDate,settlementDate + 1*Years, nominal);
+	ccsPricer = CCSPricer(today,settlementDate,settlementDate + 1*Years, nominal, nominalsCCY2,fixingsCCY1,fixingsCCY2);
 }
 
 double GSAFunction::eval(double ccy1_dw, 

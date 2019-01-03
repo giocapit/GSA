@@ -1,0 +1,27 @@
+#include <vector>
+
+
+class GsaFunctionBuilder{
+	private:
+		
+		std::vector<double> offsets_ccy1;
+		std::vector<double> offsets_ccy2;
+		std::vector<double> offsets_assetCurve;
+		std::vector<double> offsets_numeraireCurve;
+		std::vector<double> offsets_spreadCurve;
+		std::vector<QuantLib::Time> periods_ccy1;
+		std::vector<QuantLib::Time> periods_ccy2;
+		std::vector<QuantLib::Time> periods_assetCurve;
+		std::vector<QuantLib::Time> periods_numeraireCurve;
+		std::vector<QuantLib::Time> periods_spreadCurve;
+		std::vector<QuantLib::Date> dates_ccy1;
+		std::vector<QuantLib::Date> dates_ccy2;
+		std::vector<QuantLib::Date> dates_assetCurve;
+		std::vector<QuantLib::Date> dates_numeraireCurve;
+		std::vector<QuantLib::Date> dates_spreadCurve;
+
+		double fx_spot;
+
+	public:
+		void readData();
+};	
